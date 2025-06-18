@@ -1,13 +1,563 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + React + TS</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Healthcare Diagnosis Network</title>
+<style>
+  /* Reset & base */
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(135deg, #e0f7fa, #b2ebf2);
+    color: #0f3057;
+    line-height: 1.5;
+    padding: 16px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  header h1 {
+    font-weight: 900;
+    font-size: 2.5rem;
+    color: #00796b;
+  }
+  main {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    max-width: 1200px;
+    margin: 0 auto;
+    flex: 1;
+  }
+  /* Input form area */
+  section#input-section {
+    background: rgba(255 255 255 / 0.85);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 8px 20px rgb(0 0 0 / 0.1);
+    display: grid;
+    grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
+    gap: 24px;
+  }
+  label {
+    font-weight: 600;
+    margin-bottom: 6px;
+    display: block;
+    color: #004d40;
+  }
+  input[type="text"], select, input[type="file"] {
+    width: 100%;
+    padding: 10px 14px;
+    border: 2px solid #004d40;
+    border-radius: 8px;
+    font-size: 1rem;
+    outline-offset: 2px;
+    transition: border-color 0.3s ease;
+  }
+  input[type="text"]:focus, select:focus, input[type="file"]:focus {
+    border-color: #00796b;
+  }
+  button {
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #004d40, #00796b);
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+  button:hover, button:focus {
+    background: linear-gradient(135deg, #00796b, #004d40);
+  }
+  .full-span {
+    grid-column: 1 / -1;
+  }
+
+  /* Queries section */
+  section#query-section {
+    background: rgba(255 255 255 / 0.85);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 8px 20px rgb(0 0 0 / 0.1);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-end;
+  }
+  section#query-section > div {
+    flex: 1 1 220px;
+    display: flex;
+    flex-direction: column;
+  }
+  #query-results {
+    background: rgba(255 255 255 / 0.9);
+    border-radius: 16px;
+    padding: 20px;
+    margin-top: 12px;
+    max-height: 180px;
+    overflow-y: auto;
+    font-size: 1rem;
+    color: #00332f;
+  }
+
+  /* Graph visualization container */
+  #graph {
+    flex: 1;
+    background: rgba(255 255 255 / 0.85);
+    border-radius: 16px;
+    box-shadow: 0 8px 20px rgb(0 0 0 / 0.1);
+    position: relative;
+    min-height: 600px;
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    main {
+      padding: 0 8px;
+    }
+    section#input-section {
+      grid-template-columns: 1fr;
+    }
+    section#query-section {
+      flex-direction: column;
+    }
+    section#query-section > div {
+      width: 100%;
+    }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Healthcare Diagnosis Network</h1>
+</header>
+
+<main>
+  <section id="input-section" aria-label="Add medical concept and relationships">
+    <div>
+      <label for="source-entity">Source Entity</label>
+      <input type="text" id="source-entity" placeholder="e.g. Fever" autocomplete="off" />
+    </div>
+    <div>
+      <label for="source-type">Source Type</label>
+      <select id="source-type" aria-label="Source Entity Type">
+        <option value="Symptom">Symptom</option>
+        <option value="Disease">Disease</option>
+        <option value="Treatment">Treatment</option>
+        <option value="Specialist">Specialist</option>
+      </select>
+    </div>
+    <div>
+      <label for="relation-type">Relationship Type</label>
+      <select id="relation-type" aria-label="Relation Type">
+        <option value="indicates">indicates</option>
+        <option value="treated by">treated by</option>
+        <option value="managed by">managed by</option>
+        <option value="prescribed by">prescribed by</option>
+      </select>
+    </div>
+    <div>
+      <label for="target-entity">Target Entity</label>
+      <input type="text" id="target-entity" placeholder="e.g. Influenza" autocomplete="off" />
+    </div>
+    <div>
+      <label for="target-type">Target Type</label>
+      <select id="target-type" aria-label="Target Entity Type">
+        <option value="Symptom">Symptom</option>
+        <option value="Disease">Disease</option>
+        <option value="Treatment">Treatment</option>
+        <option value="Specialist">Specialist</option>
+      </select>
+    </div>
+    <div style="align-self: end;">
+      <button id="add-relationship-btn" aria-label="Add medical relationship">Add Relationship</button>
+    </div>
+    <div class="full-span">
+      <label for="data-upload">Upload JSON or CSV file</label>
+      <input type="file" id="data-upload" accept=".json,.csv" aria-describedby="upload-help" />
+      <small id="upload-help" style="color:#004d40;">Upload file for batch medical data addition</small>
+      <button id="upload-btn" style="margin-top: 8px;">Upload File</button>
+    </div>
+  </section>
+
+  <section id="query-section" aria-label="Query medical knowledge graph">
+    <div>
+      <label for="query-symptom">Find Diagnoses for Symptom</label>
+      <input type="text" id="query-symptom" placeholder="Symptom name" autocomplete="off" />
+      <button id="query-diagnoses-btn">Search</button>
+    </div>
+    <div>
+      <label for="query-disease">Find Treatments for Disease</label>
+      <input type="text" id="query-disease" placeholder="Disease name" autocomplete="off" />
+      <button id="query-treatments-btn">Search</button>
+    </div>
+    <div>
+      <label for="query-entity">Find Specialists for Entity</label>
+      <input type="text" id="query-entity" placeholder="Disease or Treatment name" autocomplete="off" />
+      <button id="query-specialists-btn">Search</button>
+    </div>
+    <div class="full-span" aria-live="polite" aria-atomic="true" role="region" id="query-results">
+      <strong>Query results will appear here</strong>
+    </div>
+  </section>
+
+  <section id="graph" aria-label="Knowledge graph visualization"></section>
+</main>
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+  (() => {
+    const API_BASE = 'http://localhost:5000'; // Adjust if backend is hosted elsewhere
+
+    /* DOM Elements */
+    const sourceInput = document.getElementById('source-entity');
+    const sourceTypeSelect = document.getElementById('source-type');
+    const relationTypeSelect = document.getElementById('relation-type');
+    const targetInput = document.getElementById('target-entity');
+    const targetTypeSelect = document.getElementById('target-type');
+    const addRelationshipBtn = document.getElementById('add-relationship-btn');
+    const uploadInput = document.getElementById('data-upload');
+    const uploadBtn = document.getElementById('upload-btn');
+
+    const querySymptomInput = document.getElementById('query-symptom');
+    const queryDiagnosesBtn = document.getElementById('query-diagnoses-btn');
+    const queryDiseaseInput = document.getElementById('query-disease');
+    const queryTreatmentsBtn = document.getElementById('query-treatments-btn');
+    const queryEntityInput = document.getElementById('query-entity');
+    const querySpecialistsBtn = document.getElementById('query-specialists-btn');
+    const queryResults = document.getElementById('query-results');
+
+    const graphContainer = document.getElementById('graph');
+
+    // Setup SVG for graph
+    const width = graphContainer.clientWidth;
+    const height = graphContainer.clientHeight;
+    const svg = d3.select("#graph").append("svg")
+      .attr("width", width)
+      .attr("height", height)
+      .style("background", "white")
+      .style("border-radius", "16px");
+
+    let simulation;
+
+    // Color scale for node types
+    const colorScale = d3.scaleOrdinal()
+      .domain(["Symptom", "Disease", "Treatment", "Specialist", "Unknown"])
+      .range(["#ff7043", "#29b6f6", "#66bb6a", "#ab47bc", "#9e9e9e"]);
+
+    /* Helper: Fetch JSON */
+    async function fetchJSON(url, options) {
+      const response = await fetch(url, options);
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.statusText}`);
+      }
+      return await response.json();
+    }
+
+    /* Add relationship POST */
+    async function addRelationship() {
+      const source = sourceInput.value.trim();
+      const source_type = sourceTypeSelect.value;
+      const relation = relationTypeSelect.value;
+      const target = targetInput.value.trim();
+      const target_type = targetTypeSelect.value;
+
+      if (!source || !relation || !target) {
+        alert("Please fill source entity, relation, and target entity.");
+        return;
+      }
+
+      try {
+        const res = await fetchJSON(API_BASE + '/add-concept', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ source, relation, target, source_type, target_type })
+        });
+
+        alert(res.message || 'Relationship added successfully.');
+
+        // Refresh graph visualization
+        await loadGraph();
+      } catch (e) {
+        alert('Error adding relationship: ' + e.message);
+      }
+    }
+
+    /* Handle file upload */
+    async function uploadData() {
+      const file = uploadInput.files[0];
+      if (!file) {
+        alert("Please select a JSON or CSV file first.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const res = await fetchJSON(API_BASE + '/upload-data', {
+          method: 'POST',
+          body: formData
+        });
+
+        alert(res.message || 'File uploaded successfully.');
+
+        uploadInput.value = '';
+        await loadGraph();
+      } catch (e) {
+        alert("Error uploading file: " + e.message);
+      }
+    }
+
+    /* Run queries */
+    async function queryDiagnoses() {
+      const symptom = querySymptomInput.value.trim();
+      if (!symptom) {
+        alert("Please enter a symptom to query.");
+        return;
+      }
+      try {
+        const res = await fetchJSON(API_BASE + `/query/diagnoses-for-symptom?symptom=${encodeURIComponent(symptom)}`);
+        displayResults(`Diagnoses for symptom "${symptom}"`, res.diseases || []);
+        await highlightGraphNodes(res.diseases);
+      } catch (e) {
+        alert("Query error: " + e.message);
+      }
+    }
+
+    async function queryTreatments() {
+      const disease = queryDiseaseInput.value.trim();
+      if (!disease) {
+        alert("Please enter a disease to query.");
+        return;
+      }
+      try {
+        const res = await fetchJSON(API_BASE + `/query/treatments-for-disease?disease=${encodeURIComponent(disease)}`);
+        displayResults(`Treatments for disease "${disease}"`, res.treatments || []);
+        await highlightGraphNodes(res.treatments);
+      } catch (e) {
+        alert("Query error: " + e.message);
+      }
+    }
+
+    async function querySpecialists() {
+      const entity = queryEntityInput.value.trim();
+      if (!entity) {
+        alert("Please enter a disease or treatment to query.");
+        return;
+      }
+      try {
+        const res = await fetchJSON(API_BASE + `/query/specialists-for-entity?entity=${encodeURIComponent(entity)}`);
+        displayResults(`Specialists for "${entity}"`, res.specialists || []);
+        await highlightGraphNodes(res.specialists);
+      } catch (e) {
+        alert("Query error: " + e.message);
+      }
+    }
+
+    /* Display query results */
+    function displayResults(title, items) {
+      if (!items.length) {
+        queryResults.innerHTML = `<strong>${title}:</strong> No results found.`;
+        return;
+      }
+      const listItems = items.map(i => `<li>${i}</li>`).join('');
+      queryResults.innerHTML = `<strong>${title}:</strong><ul>${listItems}</ul>`;
+    }
+
+    /* Load and render the full graph */
+    async function loadGraph() {
+      try {
+        const data = await fetchJSON(API_BASE + '/graph');
+        renderGraph(data);
+      } catch (e) {
+        alert("Failed loading graph data: " + e.message);
+      }
+    }
+
+    /* Render graph using D3.js */
+    function renderGraph(data) {
+      svg.selectAll("*").remove();
+
+      const nodes = data.nodes.map(d => ({ ...d }));
+      const links = data.edges.map(d => ({ ...d }));
+
+      if (nodes.length === 0) {
+        svg.append("text")
+          .attr("x", width / 2)
+          .attr("y", height / 2)
+          .attr("text-anchor", "middle")
+          .attr("fill", "#999")
+          .attr("font-size", "18px")
+          .text("Add concepts to display knowledge graph");
+        return;
+      }
+
+      simulation = d3.forceSimulation(nodes)
+        .force("link", d3.forceLink(links).id(d => d.id).distance(140).strength(0.7))
+        .force("charge", d3.forceManyBody().strength(-350))
+        .force("center", d3.forceCenter(graphContainer.clientWidth / 2, graphContainer.clientHeight / 2))
+        .force("collide", d3.forceCollide(40))
+        .on("tick", ticked);
+
+      // Draw edges
+      const link = svg.append("g")
+        .attr("class", "links")
+        .selectAll("line")
+        .data(links)
+        .join("line")
+        .attr("stroke", "#bbb")
+        .attr("stroke-width", 2);
+
+      // Draw labels on edges
+      const edgeLabels = svg.append("g")
+        .attr("class", "edge-labels")
+        .selectAll("text")
+        .data(links)
+        .join("text")
+        .text(d => d.relation)
+        .attr("font-size", 10)
+        .attr("fill", "#444");
+
+      // Draw nodes
+      const node = svg.append("g")
+        .attr("class", "nodes")
+        .selectAll("circle")
+        .data(nodes)
+        .join("circle")
+        .attr("r", 20)
+        .attr("fill", d => colorScale(d.type || "Unknown"))
+        .call(drag(simulation));
+
+      // Tooltip
+      const tooltip = d3.select("body")
+        .append("div")
+        .style("position", "absolute")
+        .style("background", "rgba(0,0,0,0.7)")
+        .style("color", "white")
+        .style("padding", "6px 10px")
+        .style("border-radius", "6px")
+        .style("pointer-events", "none")
+        .style("opacity", 0);
+
+      node.on("mouseover", (event, d) => {
+        tooltip.style("opacity", 1)
+          .html(`<strong>${d.id}</strong><br>Type: ${d.type}`)
+          .style("left", event.pageX + 10 + "px")
+          .style("top", event.pageY + 10 + "px");
+      }).on("mouseout", () => {
+        tooltip.style("opacity", 0);
+      });
+
+      // Labels for nodes
+      const labels = svg.append("g")
+        .attr("class", "labels")
+        .selectAll("text")
+        .data(nodes)
+        .join("text")
+        .text(d => d.id)
+        .attr("text-anchor", "middle")
+        .attr("dy", 5)
+        .attr("pointer-events", "none")
+        .attr("font-size", 12)
+        .attr("fill", "#0f3057")
+        .style("font-weight", "600");
+
+      function ticked() {
+        link
+          .attr("x1", d => fixNaN(d.source.x))
+          .attr("y1", d => fixNaN(d.source.y))
+          .attr("x2", d => fixNaN(d.target.x))
+          .attr("y2", d => fixNaN(d.target.y));
+
+        labels
+          .attr("x", d => fixNaN(d.x))
+          .attr("y", d => fixNaN(d.y));
+
+        node
+          .attr("cx", d => fixNaN(d.x))
+          .attr("cy", d => fixNaN(d.y));
+
+        edgeLabels
+          .attr("x", d => (fixNaN(d.source.x) + fixNaN(d.target.x)) / 2)
+          .attr("y", d => (fixNaN(d.source.y) + fixNaN(d.target.y)) / 2);
+      }
+
+      function fixNaN(val) {
+        return isNaN(val) ? 0 : val;
+      }
+
+      // Drag behavior
+      function drag(simulation) {
+        function dragstarted(event, d) {
+          if (!event.active) simulation.alphaTarget(0.3).restart();
+          d.fx = d.x;
+          d.fy = d.y;
+        }
+        function dragged(event, d) {
+          d.fx = event.x;
+          d.fy = event.y;
+        }
+        function dragended(event, d) {
+          if (!event.active) simulation.alphaTarget(0);
+          d.fx = null;
+          d.fy = null;
+        }
+        return d3.drag()
+          .on("start", dragstarted)
+          .on("drag", dragged)
+          .on("end", dragended);
+      }
+    }
+
+    /* Highlight nodes in graph after query */
+    async function highlightGraphNodes(nodeNames) {
+      if (!simulation) return;
+      if (!Array.isArray(nodeNames)) return;
+
+      // Dim all nodes and links first
+      svg.selectAll("circle").attr("opacity", 0.25);
+      svg.selectAll(".links line").attr("opacity", 0.1);
+      svg.selectAll(".labels text").attr("opacity", 0.25);
+      svg.selectAll(".edge-labels text").attr("opacity", 0.1);
+
+      // Highlight matching nodes
+      svg.selectAll("circle").filter(d => nodeNames.includes(d.id))
+        .attr("opacity", 1)
+        .attr("stroke", "#f57c00")
+        .attr("stroke-width", 3);
+
+      // Optionally highlight links connected to these nodes
+      svg.selectAll(".links line").filter(d => nodeNames.includes(d.source.id) || nodeNames.includes(d.target.id))
+        .attr("opacity", 1)
+        .attr("stroke", "#f57c00")
+        .attr("stroke-width", 3);
+    }
+
+    /* Initialization */
+    function init() {
+      addRelationshipBtn.addEventListener('click', addRelationship);
+      uploadBtn.addEventListener('click', uploadData);
+      queryDiagnosesBtn.addEventListener('click', queryDiagnoses);
+      queryTreatmentsBtn.addEventListener('click', queryTreatments);
+      querySpecialistsBtn.addEventListener('click', querySpecialists);
+
+      loadGraph();
+    }
+
+    init();
+  })();
+</script>
+</body>
 </html>
+

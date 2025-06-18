@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import InputForm from "./components/InputForm";
 import GraphView from "./components/GraphView";
+import UploadForm from "./components/UploadForm";
+import QueryPanel from "./components/QueryPanel";
 
 interface Node {
   id: string;
@@ -34,6 +36,8 @@ function App() {
     <div style={{ padding: "20px" }}>
       <h2>Healthcare Diagnosis Network</h2>
       <InputForm onUpdate={fetchGraph} />
+      <UploadForm onUpdate={fetchGraph} />
+      <QueryPanel />
       <GraphView data={graphData} />
     </div>
   );

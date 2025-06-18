@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>D3.js Knowledge Graph Test</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+  }
+  #graph {
+    width: 100%;
+    height: 600px;
+    border: 1px solid #ccc;
+  }
+</style>
+</head>
+<body>
+<h2>D3.js Knowledge Graph Test</h2>
+<div id="graph"></div>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+  const width = document.getElementById('graph').clientWidth;
+  const height = document.getElementById('graph').clientHeight;
+
+  const nodes = [
+    { id: "Fever", type: "Symptom" },
+    { id: "Influenza", type: "Disease" },
+    { id: "Antivirals", type: "Treatment" },
+    { id: "Infectious Disease Specialist", type: "Specialist" }
+  ];
+  const links = [
+    { source: "Fever", target: "Influenza", relation: "indicates" },
+    { source: "Influenza", target: "Antivirals", relation: "treated by" },
+    { source: "Antivirals", target: "Infectious Disease Specialist", relation: "prescribed by" }
+  ];
+
+  const colorScale = d3.scaleOrdinal()
+    .domain(["Symptom", "Disease", "Treatment", "Specialist", "Unknown"])
+    .range(["#ff7043", "#29b6f6", "#66bb6a", "#ab47bc", "#9e9e9e"]);
+
+  const svg = d3.select('#graph')
+    .append('svg')
+    .attr('width', width)
+    .attr('height', height);
+
+  const simulation = d3.forceSimulation(nodes)
+    .force("link", d3.forceLink(links).id(d => d.id).distance(160).strength(0.7))
+    .force("charge", d3.forceManyBody().strength(-400))
+    .force("center", d3.forceCenter(width / 2, height / 2))
+    .force("collide", d3.forceCollide(40))
+    .on("tick", ticked);
+
+  const link = svg.append("g")
+    .attr("stroke", "#bbb")
+    .attr("stroke-width", 2)
+    .selectAll("line")
+    .data(links)
+    .join("line");
+
+  const edgeLabels = svg.append("g")
+    .attr("class", "edge-labels")
+    .selectAll("text")
+    .data(links)
+    .join("text")
+    .text(d => d.relation)
+    .attr("font-size", 12)
+    .attr("fill", "#555");
+
+  const node = svg.append("g")
+    .attr("stroke", "#fff")
+    .attr("stroke-width", 1.5)
+    .selectAll("circle")
+    .data(nodes)
+    .join("circle")
+    .attr("r", 22)
+    .attr("fill", d => colorScale(d.type || "Unknown"))
+    .call(drag(simulation));
+
+  const labels = svg.append("g")
+    .selectAll("text")
+    .data(nodes)
+    .join("text")
+    .text(d => d.id)
+    .attr("text-anchor", "middle")
+    .attr("dy", 5)
+    .attr("font-size", 14)
+    .attr("fill", "#222")
+    .style("pointer-events", "none");
+
+  function ticked() {
+    link
+      .attr("x1", d => fixNaN(d.source.x))
+      .attr("y1", d => fixNaN(d.source.y))
+      .attr("x2", d => fixNaN(d.target.x))
+      .attr("y2", d => fixNaN(d.target.y));
+
+    labels
+      .attr("x", d => fixNaN(d.x))
+      .attr("y", d => fixNaN(d.y));
+
+    node
+      .attr("cx", d => fixNaN(d.x))
+      .attr("cy", d => fixNaN(d.y));
+
+    edgeLabels
+      .attr("x", d => (fixNaN(d.source.x) + fixNaN(d.target.x)) / 2)
+      .attr("y", d => (fixNaN(d.source.y) + fixNaN(d.target.y)) / 2);
+  }
+
+  function fixNaN(val) {
+    return isNaN(val) ? 0 : val;
+  }
+
+  function drag(simulation) {
+    function dragstarted(event, d) {
+      if (!event.active) simulation.alphaTarget(0.3).restart();
+      d.fx = d.x;
+      d.fy = d.y;
+    }
+    function dragged(event, d) {
+      d.fx = event.x;
+      d.fy = event.y;
+    }
+    function dragended(event, d) {
+      if (!event.active) simulation.alphaTarget(0);
+      d.fx = null;
+      d.fy = null;
+    }
+    return d3.drag()
+      .on("start", dragstarted)
+      .on("drag", dragged)
+      .on("end", dragended);
+  }
+</script>
+</body>
+</html>
+
