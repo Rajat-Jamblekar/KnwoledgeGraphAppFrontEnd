@@ -1,46 +1,27 @@
-import { useState, useEffect } from "react";
-import axios from "axios";
-import InputForm from "./components/InputForm";
-import GraphView from "./components/GraphView";
-import UploadForm from "./components/UploadForm";
-import QueryPanel from "./components/QueryPanel";
+import React from 'react';
+import { Container, Box } from '@mui/material';
+import Header from './Header';
+import InputForm from './InputForm';
+import QuerySection from './QuerySection';
+import Graph from './Graph';
 
-interface Node {
-  id: string;
-}
-
-interface Link {
-  source: string;
-  target: string;
-  label: string;
-}
-
-interface GraphData {
-  nodes: Node[];
-  links: Link[];
-}
-
-function App() {
-  const [graphData, setGraphData] = useState<GraphData | null>(null);
-
-  const fetchGraph = async () => {
-    const res = await axios.get<GraphData>("http://localhost:5000/graph_data");
-    setGraphData(res.data);
-  };
-
-  useEffect(() => {
-    fetchGraph();
-  }, []);
-
+const App: React.FC = () => {
   return (
-    <div style={{ padding: "20px" }}>
-      <h2>Healthcare Diagnosis Network</h2>
-      <InputForm onUpdate={fetchGraph} />
-      <UploadForm onUpdate={fetchGraph} />
-      <QueryPanel />
-      <GraphView data={graphData} />
-    </div>
+    <Box sx={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #e0f7fa, #b2ebf2)',
+      color: '#0f3057',
+      py: 2,
+      fontFamily: 'Inter, sans-serif',
+    }}>
+      <Container maxWidth="lg">
+        <Header />
+        <InputForm />
+        <QuerySection />
+        <Graph />
+      </Container>
+    </Box>
   );
-}
+};
 
 export default App;
